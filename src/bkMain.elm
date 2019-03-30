@@ -1,6 +1,7 @@
 module Main exposing (main)
 
 import Animal exposing (..)
+import Array exposing (Array)
 import Array2D exposing (..)
 import Browser
 import Element exposing (..)
@@ -144,28 +145,95 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    Element.layout []
-        displayBoard
-        model
+    layout [] <|
+        column [ spacing 20, padding 20 ]
+            [ -- viewScore model.state
+              -- ,
+              viewBoard model
 
-
-displayBoard : Model -> Element Msg
-displayBoard model =
-    row [ centerY, spacing 2 ]
-        [ columns [ width fill, centerY, spacing 2 ]
-            [ komaElement model 1 1
-            , komaElement model 1 2
+            -- , viewResult model.state
             ]
+
+
+viewBoard : Model -> Element msg
+viewBoard { size, board } =
+    let
+        ( w, h ) =
+            size
+    in
+    Keyed.column
+        [ Border.rounded 10
+        , Background.color <| rgb255 187 187 187
+        , width <| px <| w * 50 + (w - 1) * 5 + 20
+        , height <| px <| h * 50 + (h - 1) * 5 + 20
+        , padding 10
         ]
+    <|
+        List.reverse <|
+            List.sortBy Tuple.first <|
+                List.map (Tuple.mapSecond <| el [ width <| px 0, height <| px 0 ])
+                    (viewEmptyCells size)
 
 
-komaElement : Model -> Int -> Int -> Element Msg
-komaElement model suji dan =
+positionHelp : String -> String -> Position -> Int -> Element msg
+positionHelp moveClass cellClass ( i, j ) num =
     el
-        [ Background.color (rgb255 240 0 245)
-        , Font.color (rgb255 255 255 255)
-        , Border.rounded 3
-        , padding 13
-        , rotate ((180 * 3.14) / 180)
+        [ moveRight <| toFloat <| i * 55
+        , moveDown <| toFloat <| j * 55
+        , class moveClass
         ]
-        (text (getText suji dan model.board))
+    <|
+        lazy2 viewCell cellClass num
+
+
+viewCell : String -> Int -> Element msg
+viewCell cls num =
+    column
+        [ class cls
+        , width <| px 50
+        , height <| px 50
+        , Border.rounded 5
+        , Font.size 24
+        , Background.color <|
+            case num of
+                2 ->
+                    rgb255 238 238 238
+
+                _ ->
+                    rgb255 100 100 100
+        , Font.color <|
+            if num == 2 || num == 4 then
+                rgb255 34 34 34
+
+            else
+                rgb255 250 250 250
+        ]
+        [ el [ centerX, centerY ] <| text (String.fromInt num) ]
+
+
+viewEmptyCells : ( Int, Int ) -> List ( String, Element msg )
+viewEmptyCells ( w, h ) =
+    List.range 0 (h - 1)
+        |> List.concatMap
+            (\j ->
+                List.range 0 (w - 1)
+                    |> List.map
+                        (\i ->
+                            ( "empty" ++ String.fromInt i ++ "_" ++ String.fromInt j
+                            , el
+                                [ width <| px 50
+                                , height <| px 50
+                                , Border.rounded 5
+                                , Background.color <| rgb255 204 204 204
+                                , moveRight <| toFloat <| i * 55
+                                , moveDown <| toFloat <| j * 55
+                                ]
+                                none
+                            )
+                        )
+            )
+
+
+class : String -> Attribute msg
+class =
+    htmlAttribute << Html.Attributes.class
