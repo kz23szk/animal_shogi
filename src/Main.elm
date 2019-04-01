@@ -1,6 +1,7 @@
 module Main exposing (main)
 
 import Animal exposing (..)
+import Array exposing (Array)
 import Array2D exposing (..)
 import Browser
 import Element exposing (..)
@@ -29,7 +30,7 @@ main =
 
 type alias Model =
     { board : Board -- マス目の情報 Array2dのほうが良い？
-    , size : ( Int, Int ) -- マス目の縦横
+    , size : BoardSize -- マス目の縦横
     , state : GameState
 
     -- 持ち駒や着手中の駒などの状態もある
@@ -45,7 +46,23 @@ type GameState
 
 
 type alias Board =
-    Array2D Cell
+    List Cell
+
+
+
+-- Array2D Cell
+
+
+type AnimationCell
+    = ShowUpCell Cell
+    | MoveCell Cell
+    | MergeCell Cell ( Cell, Cell )
+
+
+type alias BoardSize =
+    { w : Suji
+    , h : Dan
+    }
 
 
 
@@ -60,30 +77,36 @@ type alias Cell =
 
 type alias Position =
     -- 筋、段と分けたほうがいいのか？
-    ( Int, Int )
+    { suji : Suji
+    , dan : Dan
+    }
+
+
+type alias Suji =
+    Int
+
+
+type alias Dan =
+    Int
 
 
 init : Model
 init =
     { board =
-        Array2D.fromList
-            [ [ Cell ( 1, 1 ) (Koma Zou Gote False)
-              , Cell ( 1, 2 ) (Koma Emp Gote False)
-              , Cell ( 1, 3 ) (Koma Emp Gote False)
-              , Cell ( 1, 4 ) (Koma Kirin Sente False)
-              ]
-            , [ Cell ( 2, 1 ) (Koma Lion Gote False)
-              , Cell ( 2, 2 ) (Koma Hiyoko Gote False)
-              , Cell ( 2, 3 ) (Koma Hiyoko Sente False)
-              , Cell ( 2, 4 ) (Koma Lion Sente False)
-              ]
-            , [ Cell ( 3, 1 ) (Koma Kirin Gote False)
-              , Cell ( 3, 2 ) (Koma Emp Sente False)
-              , Cell ( 3, 3 ) (Koma Emp Sente False)
-              , Cell ( 3, 4 ) (Koma Zou Sente False)
-              ]
-            ]
-    , size = ( 3, 4 )
+        [ Cell (Position 1 1) (Koma Zou Gote False)
+        , Cell (Position 1 2) (Koma Emp Gote False)
+        , Cell (Position 1 3) (Koma Emp Gote False)
+        , Cell (Position 1 4) (Koma Kirin Sente False)
+        , Cell (Position 2 1) (Koma Lion Gote False)
+        , Cell (Position 2 2) (Koma Hiyoko Gote False)
+        , Cell (Position 2 3) (Koma Hiyoko Sente False)
+        , Cell (Position 2 4) (Koma Lion Sente False)
+        , Cell (Position 3 1) (Koma Kirin Gote False)
+        , Cell (Position 3 2) (Koma Emp Sente False)
+        , Cell (Position 3 3) (Koma Emp Sente False)
+        , Cell (Position 3 4) (Koma Zou Sente False)
+        ]
+    , size = BoardSize 3 4
     , state = Playing
     }
 
@@ -103,69 +126,28 @@ update msg model =
 
 
 
-{- case msg of
-   Touch ->
-       if ban.cell.koma.komashu == Kirin then
-           "王"
-
-       else
-           "飛"
--}
 -- VIEW
--- view : Model -> Html Msg
-{- view ban =
-   div []
-       [ tr []
-           [ th [] [ button [] [ text (getText 8 ban) ] ]
-           , th [] [ button [] [ text (getText 4 ban) ] ]
-           , th [] [ button [] [ text (getText 0 ban) ] ]
-           ]
-       , tr
-           []
-           [ th [] [ button [] [ text (getText 9 ban) ] ]
-           , th [] [ button [] [ text (getText 5 ban) ] ]
-           , th [] [ button [] [ text (getText 1 ban) ] ]
-           ]
-       , tr
-           []
-           [ th [] [ button [] [ text (getText 10 ban) ] ]
-           , th [] [ button [] [ text (getText 6 ban) ] ]
-           , th [] [ button [] [ text (getText 2 ban) ] ]
-           ]
-       , tr
-           []
-           [ th [] [ button [] [ text (getText 11 ban) ] ]
-           , th [] [ button [] [ text (getText 7 ban) ] ]
-           , th [] [ button [] [ text (getText 3 ban) ] ]
-           ]
-           ]
--}
 
 
 view : Model -> Html Msg
 view model =
-    Element.layout []
-        displayBoard
-        model
-
-
-displayBoard : Model -> Element Msg
-displayBoard model =
-    row [ centerY, spacing 2 ]
-        [ columns [ width fill, centerY, spacing 2 ]
-            [ komaElement model 1 1
-            , komaElement model 1 2
+    layout [] <|
+        column
+            [ spacing 20, padding 20 ]
+            [ viewBoard model
+            , text "手番：先手"
             ]
-        ]
 
 
-komaElement : Model -> Int -> Int -> Element Msg
-komaElement model suji dan =
-    el
-        [ Background.color (rgb255 240 0 245)
-        , Font.color (rgb255 255 255 255)
-        , Border.rounded 3
-        , padding 13
-        , rotate ((180 * 3.14) / 180)
+viewBoard : Model -> Element msg
+viewBoard { size, board } =
+    column
+        [ Border.rounded 10
+        , Background.color (rgb255 187 187 187)
+        , width (px 200)
+        , height (px 400)
+        , padding 10
         ]
-        (text (getText suji dan model.board))
+        [ text "歩"
+        , text "飛"
+        ]
